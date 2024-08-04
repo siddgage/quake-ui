@@ -1,27 +1,48 @@
-import { Box, Button, Grid, InputAdornment, Link, Paper, TextField, Typography } from "@mui/material";
-import { SubmitHandler, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import { LoadingButton } from "@mui/lab";
+import { Box, Grid, InputAdornment, Paper, Link, TextField, Typography } from "@mui/material";
 import { useState } from "react";
-import style from './LoginLanding.module.css'
+import { SubmitHandler, useForm } from "react-hook-form";
+import { z } from "zod";
+import axios from "../../api/axios";
+import style from './Login.module.css';
+import { Link as RouterLink } from "react-router-dom";
 
-type FormFields = {
-    username: String,
-    password: String,
-}
+const schema = z.object({
+    username: z.string().min(5),
+    password: z.string().min(8),
+
+})
+
+type FormFields = z.infer<typeof schema>
 
 const LoginLanding = () => {
-    const { register, handleSubmit } = useForm<FormFields>();
+    const { register,
+        handleSubmit,
+        setError,
+        formState: { errors, isSubmitting }, } = useForm<FormFields>({
+            resolver: zodResolver(schema),
+        });
 
     const onSubmit: SubmitHandler<FormFields> = (data) => {
-        console.log(data)
+        axios
+            .post(
+                '/user/auth/login',
+                data,
+                { headers: { 'Content-Type': 'application/json' } }
+            )
+            .then(response => { console.log(response.data) })
+            .catch(error => { setError("root", error) });
     }
 
-    const [visible, setVisible] = useState(false);
+    const [visible, setVisible] = useState<boolean>(false);
 
     const changePassVisibility = () => {
         setVisible(!visible)
     }
+
     return (
         <Box className={`${style.bg}`}
             sx={{
@@ -37,14 +58,15 @@ const LoginLanding = () => {
                     display: "flex",
                     flexDirection: 'column',
                     alignItems: 'center',
-                    px:"8em",
-                    py:"4.5em"
+                    px: "8em",
+                    py: "4em"
                 }}
             >
+
                 <Typography component='h1' variant='h5'>
                     Sign in
                 </Typography>
-                <Box component={"form"} onSubmit={handleSubmit(onSubmit)} sx={{ mt: 1 }}>
+                <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ mt: 1 }}>
                     <TextField
                         margin="normal"
                         required
@@ -53,9 +75,9 @@ const LoginLanding = () => {
                         label="Username"
                         autoComplete="username"
                         autoFocus
-                        {...register("username", {
-                            minLength: 5
-                        })} />
+                        error={!errors}
+                        helperText={!errors.username?.message ? 'Enter username' : errors.username?.message}
+                        {...register("username")} />
 
                     <TextField
                         margin="normal"
@@ -65,33 +87,37 @@ const LoginLanding = () => {
                         type={visible ? "text" : "password"}
                         id="password"
                         autoComplete="current-password"
+                        error={!errors}
+                        helperText={!errors.password?.message ? 'Enter password' : errors.password.message}
                         InputProps={{
                             endAdornment: <InputAdornment position='end' onClick={changePassVisibility}
                                 sx={{ ":hover": { cursor: 'pointer' } }}>
                                 {visible ? <VisibilityIcon /> : <VisibilityOffIcon />}
                             </InputAdornment>
                         }}
-                        {...register("password", {
-                            minLength: 8
-                        })} />
+                        {...register("password")} />
 
-                    <Button
+                    {errors.root && (
+                        <div className="text-red-500">{errors.root.message}</div>)}
+                    <LoadingButton
                         type="submit"
                         fullWidth
                         variant="contained"
+                        loading={isSubmitting}
                         sx={{ mt: 3, mb: 2 }}
                     >
                         Sign In
-                    </Button>
+                    </LoadingButton>
+
                     <Grid container>
                         <Grid item xs>
-                            <Link href="#" variant="body2">
-                                Forgot password?
+                            <Link variant="body2">
+                                <RouterLink to={'/forgotPassword'}>Forgot password?</RouterLink>
                             </Link>
                         </Grid>
                         <Grid item>
-                            <Link href="#" variant="body2">
-                                {"Don't have an account? Sign Up"}
+                            <Link variant="body2">
+                                <RouterLink to={'/signup'}>Don't have an account? Sign Up</RouterLink>
                             </Link>
                         </Grid>
                     </Grid>

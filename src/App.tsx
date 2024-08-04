@@ -1,9 +1,7 @@
-
 import './App.css'
-import LoginLanding from './components/login/LoginLanding'
+import LoginLanding from './components/login/Login'
 
 function App() {
-
 
   return (
     <>
