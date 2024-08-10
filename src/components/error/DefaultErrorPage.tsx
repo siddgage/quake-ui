@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom"
 
-export const DefaultErrorPage = () => {
+const DefaultErrorPage = () => {
     return (
         <div className="">Hi from default error page
             <Link to={'/'}>HomePage</Link>
@@ -8,3 +8,5 @@ export const DefaultErrorPage = () => {
 
     )
 }
+
+export default DefaultErrorPage
