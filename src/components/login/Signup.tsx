@@ -11,22 +11,30 @@ import axios from "../../api/axios";
 import style from './Login.module.css';
 
 
-export const Signup = () => {
+const complexity = 'Minimum 8 characters, at least one uppercase letter, one lowercase letter, one number and one special character'
+const passwordValidation = new RegExp(
+    /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$/
+);
+
+const Signup = () => {
     const schema = z.object({
-        username: z.string().min(5),
-        password: z.string().min(8),
-        passwordCheck: z.string().min(8),
+        username: z.string().min(5, { message: "Username must be atleast 5 character long" }),
+        password: z.string().min(8, { message: "Password must be atleast 5 character long" })
+            .regex(passwordValidation, { message: complexity }),
+        confirmPassword: z.string().min(8),
         firstName: z.string().max(50),
         lastName: z.string().max(50),
         email: z.string().email(),
-    })
+    }).refine((data) => data.password === data.confirmPassword, {
+        message: "Passwords don't match",
+        path: ["confirmPassword"]
+    });
 
     type FormFields = z.infer<typeof schema>
 
     const { register,
         handleSubmit,
         setError,
-        watch,
         formState: { errors, isSubmitting }, } = useForm<FormFields>({
             resolver: zodResolver(schema),
         });
@@ -40,7 +48,9 @@ export const Signup = () => {
                 data,
                 { headers: { 'Content-Type': 'application/json' } }
             )
-            .then(response => { console.log(response.data) })
+            .then(response => {
+                console.log(response?.data)
+            })
             .catch(error => { setError("root", error) });
     }
     const [visiblePass1, setVisiblePass1] = useState<boolean>(false);
@@ -51,20 +61,6 @@ export const Signup = () => {
     }
     const changePassVisibility2 = () => {
         setVisiblePass2(!visiblePass2)
-    }
-
-    const [isValidPass, setIsValidPass] = useState(false)
-    const password = watch("password")
-    const passwordCheck = watch("passwordCheck")
-
-    const checkPassword = () => {
-        if (password == passwordCheck) {
-            setIsValidPass(!isValidPass)
-        } else {
-            setError('passwordCheck', {
-                message: 'Password does not match'
-            })
-        }
     }
 
     return (
@@ -159,16 +155,14 @@ export const Signup = () => {
                         label="Confirm Password"
                         type={visiblePass2 ? "text" : "password"}
                         id="password-check"
-                        helperText={isValidPass ? 'Confirm Password' : errors.passwordCheck?.message}
+                        helperText={!errors.confirmPassword?.message ? 'Confirm password' : errors.confirmPassword.message}
                         InputProps={{
                             endAdornment: <InputAdornment position='end' onClick={changePassVisibility2}
                                 sx={{ ":hover": { cursor: 'pointer' } }}>
                                 {visiblePass2 ? <VisibilityIcon /> : <VisibilityOffIcon />}
                             </InputAdornment>
                         }}
-                        {...register("passwordCheck", {
-                            onChange: checkPassword
-                        })} />
+                        {...register("confirmPassword")} />
 
                     {errors.root && (
                         <div className="text-red-500">{errors.root.message}</div>)}
@@ -197,3 +191,5 @@ export const Signup = () => {
         </Box>
     )
 }
+
+export default Signup;

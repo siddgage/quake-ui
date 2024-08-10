@@ -3,22 +3,32 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { LoadingButton } from "@mui/lab";
 import { Box, Grid, InputAdornment, Paper, Link, TextField, Typography } from "@mui/material";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { z } from "zod";
-import axios from "../../api/axios";
 import style from './Login.module.css';
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
+import AuthContext from "../../context/AuthProvider";
+import axios from "../../api/axios";
 
 const schema = z.object({
-    username: z.string().min(5),
-    password: z.string().min(8),
-
+    username: z.string().min(5, { message: "Username must be atleast 5 character long" }),
+    password: z.string().min(8, { message: "Password must be atleast 5 character long" })
 })
 
 type FormFields = z.infer<typeof schema>
 
-const LoginLanding = () => {
+const LoginPage = () => {
+
+    const context = useContext(AuthContext);
+
+    if (context === undefined) {
+        throw new Error("useAuth must be used within an AuthProvider");
+    }
+    const { setAuth } = context
+    const navigate = useNavigate()
+    const location = useLocation()
+
     const { register,
         handleSubmit,
         setError,
@@ -26,21 +36,32 @@ const LoginLanding = () => {
             resolver: zodResolver(schema),
         });
 
-    const onSubmit: SubmitHandler<FormFields> = (data) => {
-        axios
-            .post(
-                '/user/auth/login',
-                data,
-                { headers: { 'Content-Type': 'application/json' } }
-            )
-            .then(response => { console.log(response.data) })
-            .catch(error => { setError("root", error) });
-    }
-
     const [visible, setVisible] = useState<boolean>(false);
 
     const changePassVisibility = () => {
         setVisible(!visible)
+    }
+
+    const onSubmit: SubmitHandler<FormFields> = (data) => {
+        axios.post(
+            '/user/auth/login',
+            data,
+            { headers: { 'Content-Type': 'application/json' }, withCredentials: true }
+        ).then(response => {
+
+            setAuth({
+                isAuthenticated: true,
+                token: response?.data?.accessToken,
+                role: response?.data?.roles
+            })
+            if (location.state?.from)
+                navigate(location.state.from)
+        }).catch(error => {
+            if (!error?.response)
+                setError("root", { message: 'No server response' })
+            else
+                setError("root", error.response.data)
+        });
     }
 
     return (
@@ -127,5 +148,4 @@ const LoginLanding = () => {
     )
 }
 
-
-export default LoginLanding;
+export default LoginPage;
